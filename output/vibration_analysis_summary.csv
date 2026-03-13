@@ -1,0 +1,6 @@
+Equipment,Latest_RMS,Status,Trend,Est_Failure
+Cooling Pump for ECH-02,0.54,Zone A (Green) - Newly commissioned,Degrading,N/A
+Cooling Pump for OAH-02,0.59,Zone A (Green) - Newly commissioned,Degrading,2054-06-26
+Motor Compressor OAH-06_A,0.25,Zone A (Green) - Newly commissioned,Stable or Improving,N/A
+Jockey Pump,0.48,Zone A (Green) - Newly commissioned,Stable or Improving,N/A
+Motor Compressor CH-06_A,0.23,Zone A (Green) - Newly commissioned,Stable or Improving,N/A
