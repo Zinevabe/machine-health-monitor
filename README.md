@@ -48,19 +48,22 @@
 
 จากการรันระบบตรวจสอบข้อมูลการสั่นสะเทือนของชุดเครื่องจักรที่ถูกเก็บค่า Waveform ไว้ในโฟลเดอร์ `data/` ล่าสุด ระบบสามารถทำการประเมินสถานะออกมาเป็นรายงาน ดังนี้:
 
-| Equipment | Latest_RMS (G) | Status | Trend | Est_Failure |
+| Equipment | Latest_RMS (mm/s) | Status | Trend | Est_Failure |
 |:---|:---:|:---|:---:|:---:|
-| Cooling Pump for ECH-02 | 0.54 | Zone A (Green) - Newly commissioned | Degrading | N/A |
-| Cooling Pump for OAH-02 | 0.59 | Zone A (Green) - Newly commissioned | Degrading | 2054-06-26 |
-| Motor Compressor OAH-06_A | 0.25 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
-| Jockey Pump | 0.48 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
-| Motor Compressor CH-06_A | 0.23 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
+| Cooling Pump for ECH-02 | 2.72 | Zone B (Yellow) - Unrestricted operation | Stable or Improving | N/A |
+| Cooling Pump for OAH-02 | 2.70 | Zone B (Yellow) - Unrestricted operation | Stable or Improving | N/A |
+| Motor Compressor OAH-06_A | 1.70 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
+| Jockey Pump | 6.69 | Zone C (Orange) - Restricted operation | Stable or Improving | N/A |
+| Motor Compressor CH-06_A | 1.76 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
 
 ### การตีความหมายผลลัพธ์ (Interpretation):
-- **ข้อมูลสถานะเครื่องจักร:** ทุกเครื่องจักรถูกจัดอยู่ใน Zone A เนื่องจากค่าความสั่นสะเทือนที่อ่านได้อยู่ในระดับต่ำ (0.23 - 0.59 G) ซึ่งสะท้อนว่าเครื่องจักรทำงานเสถียร สภาพปกติเหมือนใหม่ ไม่มีการสั่นสะเทือนรุนแรงแบบผิดธรรมชาติ
+- **ข้อมูลสถานะเครื่องจักร:** เครื่องจักรมีการกระจายตัวอยู่ในย่านสภาวะต่างๆ ตามความเร็วการสั่นสะเทือน (Velocity RMS) ที่ช่วง 1.70 - 6.69 mm/s
+  - เครื่อง **Motor Compressor** ทั้งสองตัวอยู่ในเกณฑ์ดีเยี่ยม (`Zone A`)
+  - **Cooling Pump** อยู่ในสถานะเฝ้าระวังปกติ แต่ใช้งานต่อได้โดยไม่มีข้อจำกัด (`Zone B`)
+  - **Jockey Pump** เป็นเครื่องที่ควรให้ความสนใจมากที่สุด เนื่องจากมีค่าความสั่นสะเทือนขึ้นมาถึง 6.69 mm/s แตะระดับ `Zone C (Orange)` ซึ่งควรพิจารณาจำกัดระยะเวลาการใช้งานและตรวจสอบสาเหตุ
 - **แนวโน้มความเสียหายล่วงหน้า (Trend & Est_Failure):** 
-  - กลุ่มเครื่องจักรส่วนใหญ่รวมถึง `Jockey Pump` มีความเปลี่ยนแปลงค่าความสั่นในเกณฑ์คงที่ (Stable) 
-  - ส่วน `Cooling Pump for OAH-02` ระบบตรวจจับและพยากรณ์พบว่าค่ามีแนวโน้มการสั่นสูงขึ้นเรื่อยๆ (Degrading Trend) ตามสถิติแบบรายเดือน และคำนวณผ่าน Linear Polynomial ฟันธงออกมาได้ว่าค่าการสั่นสะเทือนจะไปแตะเส้นระดับอันตรายขั้นวิกฤต (Damage Occurs) ในวันที่ **26 มิถุนายน ค.ศ. 2054** (ทำให้สามารถวางแผนสั่งซื้อและสับปั๊มอะไหล่สำรองได้แม่นยำ)
+  - ถึงแม้ Jockey Pump จะมีความสั่นสะเทือนสูง แต่แนวโน้ม (Trend) ของทุกเครื่องจักรยังอยู่ในเกณฑ์ที่ทรงตัวหรือดีขึ้น (`Stable or Improving`) 
+  - ระบบจึงยังไม่คาดการณ์วันพัง (`Est_Failure: N/A`) เนื่องจากขณะนี้ไม่มีความชันการเสื่อมสภาพที่เพิ่มขึ้นอย่างเป็นเส้นตรงไปสูดจุดวิกฤต (Zone D)
 
 ---
 

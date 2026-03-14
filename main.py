@@ -49,10 +49,19 @@ def start_job():
 
     final_overview = pd.DataFrame(summary_list)
     
+    from prettytable import PrettyTable
+    pt = PrettyTable()
+    pt.field_names = ["Equipment", "Latest_RMS (mm/s)", "Status", "Trend", "Est_Failure"]
+    pt.align = "l"  # Align text to the left
+    pt.align["Latest_RMS (mm/s)"] = "r" # Align numbers to the right
+    pt.align["Trend"] = "c"
+    pt.align["Est_Failure"] = "c"
+    
+    for row in summary_list:
+        pt.add_row([row["Equipment"], row["Latest_RMS"], row["Status"], row["Trend"], row["Est_Failure"]])
+    
     print("\n[ TODAY'S ASSET OVERVIEW ]")
-    print("-" * 65)
-    print(final_overview.to_string(index=False))
-    print("-" * 65)
+    print(pt)
 
     csv_target = Path(out_dir) / "vibration_analysis_summary.csv"
     final_overview.to_csv(csv_target, index=False)

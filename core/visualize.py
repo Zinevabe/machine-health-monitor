@@ -21,12 +21,13 @@ def generate_visualizations(logs_table, out_dir):
         plt.plot(ordered['Timestamp'], ordered['RMS_Value'], 
                  marker='o', linestyle='-', linewidth=2.5, markersize=8, label=asst)
     
-    # Removed the 4.5 / 7.1 ISO limits here because our data is in G (0.2 - 0.6) 
-    # Having those limits crushes the Y-axis scale and makes the data look like a flat line at 0.
+    # Add back ISO Limits as data is now properly integrated to Velocity (mm/s)
+    plt.axhline(y=4.5, color='orange', linestyle='--', alpha=0.7, label='Zone C (Warning)')
+    plt.axhline(y=7.1, color='red', linestyle='--', alpha=0.7, label='Zone D (Danger)')
     
-    plt.title('Machine Vibration Trends (Micro-Vibration Scaling)', fontsize=14, pad=15, fontweight='bold')
+    plt.title('Machine Vibration Trends (Velocity RMS)', fontsize=14, pad=15, fontweight='bold')
     plt.xlabel('Date / Time', fontsize=12)
-    plt.ylabel('Vibration RMS (G)', fontsize=12)
+    plt.ylabel('Velocity RMS (mm/s)', fontsize=12)
     plt.xticks(rotation=15)
     plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
     plt.tight_layout()
@@ -48,12 +49,12 @@ def generate_visualizations(logs_table, out_dir):
     latest_records.rename(columns={'RMS_Value': 'Latest_RMS'}, inplace=True)
     
     merged_shift = pd.merge(first_records, latest_records, on='Equipment')
-    merged_shift_melted = merged_shift.melt(id_vars='Equipment', var_name='Reading', value_name='RMS (G)')
+    merged_shift_melted = merged_shift.melt(id_vars='Equipment', var_name='Reading', value_name='Velocity RMS (mm/s)')
     
-    sns.barplot(data=merged_shift_melted, x='RMS (G)', y='Equipment', hue='Reading', palette=['#3498db', '#e74c3c'])
+    sns.barplot(data=merged_shift_melted, x='Velocity RMS (mm/s)', y='Equipment', hue='Reading', palette=['#3498db', '#e74c3c'])
     
     plt.title('Vibration Shift: Initial Calibration vs Latest Reading', fontsize=14, pad=15, fontweight='bold')
-    plt.xlabel('Vibration RMS (G)', fontsize=12)
+    plt.xlabel('Velocity RMS (mm/s)', fontsize=12)
     plt.ylabel('Asset Name', fontsize=12)
     plt.legend(title='Record Time')
     plt.tight_layout()
