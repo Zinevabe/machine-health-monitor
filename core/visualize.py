@@ -3,40 +3,32 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib.dates import DateFormatter
 import warnings
-warnings.filterwarnings('ignore', category=UserWarning) # Suppress tight_layout warnings
+warnings.filterwarnings('ignore') # Suppress warnings
 
 def generate_visualizations(logs_table, out_dir):
-    """
-    สร้างกราฟวิเคราะห์ข้อมูลแบบต่างๆ จาก Logs หมวดหมู่ 
-    - กราฟ 1: Scatter & Line plot สำหรับดูแนวโน้ม (Time-Series Trend) แบบแยกเครื่อง
-    - กราฟ 2: Bar chart เปรียบเทียบสถานะ RMS ล่าสุดเครื่องจักรทั้งหมด
-    - กราฟ 3: Heatmap สรุปค่าสั่นแยกตามเวลา
-    """
-    print("\n[-] Generating Data Visualizations...")
+    print("\n[-] Generating Data Visualizations (Enhanced Insights)...")
     os.makedirs(out_dir, exist_ok=True)
     
     # -------------------------------------------------------------
-    # 1. Timeline (Scatter & Line Plot) - การเติบโตของการสั่นตามเวลา
+    # 1. Timeline (Scatter & Line Plot) - Auto scaled to see the actual trend
     # -------------------------------------------------------------
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(10, 5))
     sns.set_theme(style="whitegrid", context="paper")
     
-    # Plot individual machine timelines
     for asst, group_df in logs_table.groupby("Equipment"):
         ordered = group_df.sort_values("Timestamp")
         plt.plot(ordered['Timestamp'], ordered['RMS_Value'], 
-                 marker='o', linestyle='-', linewidth=2, markersize=8, label=asst)
+                 marker='o', linestyle='-', linewidth=2.5, markersize=8, label=asst)
     
-    plt.axhline(y=4.5, color='orange', linestyle='--', alpha=0.7, label='Zone C (Warning)')
-    plt.axhline(y=7.1, color='red', linestyle='--', alpha=0.7, label='Zone D (Danger)')
-
-    plt.title('Machine Vibration Trends Over Time', fontsize=14, pad=15, fontweight='bold')
+    # Removed the 4.5 / 7.1 ISO limits here because our data is in G (0.2 - 0.6) 
+    # Having those limits crushes the Y-axis scale and makes the data look like a flat line at 0.
+    
+    plt.title('Machine Vibration Trends (Micro-Vibration Scaling)', fontsize=14, pad=15, fontweight='bold')
     plt.xlabel('Date / Time', fontsize=12)
     plt.ylabel('Vibration RMS (G)', fontsize=12)
-    plt.xticks(rotation=45)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xticks(rotation=15)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left')
     plt.tight_layout()
     
     timeline_path = os.path.join(out_dir, "plot_1_vibration_timeline.png")
@@ -44,64 +36,55 @@ def generate_visualizations(logs_table, out_dir):
     plt.close()
     
     # -------------------------------------------------------------
-    # 2. Latest Asset Condition (Bar Chart)
+    # 2. Shift in Vibration (First vs Latest) - Grouped Bar Chart
     # -------------------------------------------------------------
+    # This chart tells us "Did the machine get worse since its first record?"
     plt.figure(figsize=(10, 6))
     
-    # Extract just the latest record for each machine
-    latest_idx = logs_table.groupby("Equipment")['Timestamp'].idxmax()
-    latest_df = logs_table.loc[latest_idx].sort_values("RMS_Value", ascending=False)
+    first_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmin()][['Equipment', 'RMS_Value']]
+    latest_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmax()][['Equipment', 'RMS_Value']]
     
-    # Assign colors based on zone (A=green, B=yellow, C=orange, D=red)
-    def determine_color(val):
-        if val >= 7.1: return '#e74c3c'
-        elif val >= 4.5: return '#f39c12'
-        elif val >= 2.3: return '#f1c40f'
-        return '#2ecc71'
-        
-    bar_colors = [determine_color(x) for x in latest_df['RMS_Value']]
+    first_records.rename(columns={'RMS_Value': 'Initial_RMS'}, inplace=True)
+    latest_records.rename(columns={'RMS_Value': 'Latest_RMS'}, inplace=True)
     
-    ax = sns.barplot(x="RMS_Value", y="Equipment", data=latest_df, palette=bar_colors)
+    merged_shift = pd.merge(first_records, latest_records, on='Equipment')
+    merged_shift_melted = merged_shift.melt(id_vars='Equipment', var_name='Reading', value_name='RMS (G)')
     
-    # Add value text at the end of each bar
-    for index, value in enumerate(latest_df['RMS_Value']):
-        ax.text(value + 0.02, index, f'{value:.2f}', va='center')
-
-    plt.title('Current Machine Health Condition (Latest RMS)', fontsize=14, pad=15, fontweight='bold')
+    sns.barplot(data=merged_shift_melted, x='RMS (G)', y='Equipment', hue='Reading', palette=['#3498db', '#e74c3c'])
+    
+    plt.title('Vibration Shift: Initial Calibration vs Latest Reading', fontsize=14, pad=15, fontweight='bold')
     plt.xlabel('Vibration RMS (G)', fontsize=12)
     plt.ylabel('Asset Name', fontsize=12)
+    plt.legend(title='Record Time')
     plt.tight_layout()
     
-    bar_path = os.path.join(out_dir, "plot_2_latest_condition_bar.png")
+    bar_path = os.path.join(out_dir, "plot_2_initial_vs_latest.png")
     plt.savefig(bar_path, dpi=300, bbox_inches='tight')
     plt.close()
 
     # -------------------------------------------------------------
-    # 3. Vibration Heatmap (Month vs Equipment)
+    # 3. Percentage Growth Heatmap (% Change from Baseline)
     # -------------------------------------------------------------
+    # A raw value heatmap doesn't show much if values are similar. % Growth shows true degradation.
     plt.figure(figsize=(10, 6))
     
-    # Create month-year column for grouping
     logs_table['Month_Year'] = logs_table['Timestamp'].dt.strftime('%Y-%m')
+    pivot_raw = logs_table.pivot_table(index='Equipment', columns='Month_Year', values='RMS_Value', aggfunc='mean')
     
-    # Pivot for Heatmap (take mean if multiple reads in same month)
-    pivot_tb = logs_table.pivot_table(
-        index='Equipment', 
-        columns='Month_Year', 
-        values='RMS_Value', 
-        aggfunc='mean'
-    )
+    # Calculate percentage change based on the first recorded column
+    first_col = pivot_raw.iloc[:, 0]
+    growth_pivot = pivot_raw.apply(lambda x: ((x - first_col) / first_col) * 100)
     
-    sns.heatmap(pivot_tb, annot=True, fmt=".2f", cmap="YlOrRd", 
-                linewidths=0.5, cbar_kws={'label': 'RMS (G)'})
+    sns.heatmap(growth_pivot, annot=True, fmt=".1f", cmap="vlag", center=0,
+                linewidths=1, linecolor='white', cbar_kws={'label': '% Change in Vibration'})
     
-    plt.title('Average Vibration Heatmap by Month', fontsize=14, pad=15, fontweight='bold')
+    plt.title('Degradation Heatmap (% Growth from Initial Measurement)', fontsize=14, pad=15, fontweight='bold')
     plt.xlabel('Recording Month', fontsize=12)
     plt.ylabel('Machine', fontsize=12)
     plt.tight_layout()
     
-    heat_path = os.path.join(out_dir, "plot_3_heat_map.png")
+    heat_path = os.path.join(out_dir, "plot_3_growth_heatmap.png")
     plt.savefig(heat_path, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"[+] 3 Charts generated inside -> {out_dir}/")
+    print(f"[+] 3 Enhanced Charts generated inside -> {out_dir}/")
