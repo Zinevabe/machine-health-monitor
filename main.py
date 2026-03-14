@@ -6,6 +6,7 @@ from pathlib import Path
 from core.parser import collect_measurements
 from core.classifier import attach_health_zones
 from core.forecast import calc_breakdown_point
+from core.visualize import generate_visualizations
 
 def start_job():
     base_loc = Path(__file__).resolve().parent
@@ -25,6 +26,9 @@ def start_job():
         return
 
     logs_table = attach_health_zones(logs_table)
+    
+    # ===== PLOT ALL CHARTS =====
+    generate_visualizations(logs_table, out_dir)
 
     summary_list = []
     
