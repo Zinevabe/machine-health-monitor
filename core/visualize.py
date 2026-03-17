@@ -18,8 +18,32 @@ def generate_visualizations(logs_table, out_dir):
     
     for asst, group_df in logs_table.groupby("Equipment"):
         ordered = group_df.sort_values("Timestamp")
+        
+        # Plot the actual historical data points
+        line_color = plt.gca()._get_lines.get_next_color()
         plt.plot(ordered['Timestamp'], ordered['Velocity_RMS'], 
-                 marker='o', linestyle='-', linewidth=2.5, markersize=8, label=asst)
+                 marker='o', linestyle='none', markersize=6, label=asst, color=line_color) # Points only, no connecting line
+                 
+        # Calculate and plot the Linear Prediction line
+        if len(ordered) >= 2:
+            start_date = ordered["Timestamp"].iloc[0]
+            time_series_x = [(t - start_date).total_seconds() / 86400.0 for t in ordered["Timestamp"]]
+            y_vibes = ordered["Velocity_RMS"].tolist()
+            
+            # Prevent polyfit error if all data points are taken at the exact same exact timestamp
+            if max(time_series_x) - min(time_series_x) > 0:
+                try:
+                    m_curve, b_intercept = np.polyfit(time_series_x, y_vibes, 1)
+                    
+                    # Generate points for the prediction line
+                    x_pred = np.array([min(time_series_x), max(time_series_x)])
+                    y_pred = m_curve * x_pred + b_intercept
+                    
+                    # Plot the prediction line as a solid line extending through the points
+                    plt.plot(ordered['Timestamp'].iloc[[0, -1]], y_pred, 
+                             linestyle='-', linewidth=2.5, color=line_color, alpha=0.8) # Solid matching line
+                except Exception:
+                    pass
     
     # Add back ISO Limits as data is now properly integrated to Velocity (mm/s)
     plt.axhline(y=4.5, color='orange', linestyle='--', alpha=0.7, label='Zone C (Warning)')
