@@ -18,7 +18,7 @@ def generate_visualizations(logs_table, out_dir):
     
     for asst, group_df in logs_table.groupby("Equipment"):
         ordered = group_df.sort_values("Timestamp")
-        plt.plot(ordered['Timestamp'], ordered['RMS_Value'], 
+        plt.plot(ordered['Timestamp'], ordered['Velocity_RMS'], 
                  marker='o', linestyle='-', linewidth=2.5, markersize=8, label=asst)
     
     # Add back ISO Limits as data is now properly integrated to Velocity (mm/s)
@@ -42,11 +42,11 @@ def generate_visualizations(logs_table, out_dir):
     # This chart tells us "Did the machine get worse since its first record?"
     plt.figure(figsize=(10, 6))
     
-    first_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmin()][['Equipment', 'RMS_Value']]
-    latest_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmax()][['Equipment', 'RMS_Value']]
+    first_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmin()][['Equipment', 'Velocity_RMS']]
+    latest_records = logs_table.loc[logs_table.groupby("Equipment")['Timestamp'].idxmax()][['Equipment', 'Velocity_RMS']]
     
-    first_records.rename(columns={'RMS_Value': 'Initial_RMS'}, inplace=True)
-    latest_records.rename(columns={'RMS_Value': 'Latest_RMS'}, inplace=True)
+    first_records.rename(columns={'Velocity_RMS': 'Initial_Velocity_RMS'}, inplace=True)
+    latest_records.rename(columns={'Velocity_RMS': 'Latest_Velocity_RMS'}, inplace=True)
     
     merged_shift = pd.merge(first_records, latest_records, on='Equipment')
     merged_shift_melted = merged_shift.melt(id_vars='Equipment', var_name='Reading', value_name='Velocity RMS (mm/s)')
@@ -70,7 +70,7 @@ def generate_visualizations(logs_table, out_dir):
     plt.figure(figsize=(10, 6))
     
     logs_table['Month_Year'] = logs_table['Timestamp'].dt.strftime('%Y-%m')
-    pivot_raw = logs_table.pivot_table(index='Equipment', columns='Month_Year', values='RMS_Value', aggfunc='mean')
+    pivot_raw = logs_table.pivot_table(index='Equipment', columns='Month_Year', values='Velocity_RMS', aggfunc='mean')
     
     # Calculate percentage change based on the first recorded column
     first_col = pivot_raw.iloc[:, 0]

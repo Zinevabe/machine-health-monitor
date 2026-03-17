@@ -1,0 +1,159 @@
+<mxGraphModel dx="1026" dy="618" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="bg1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;verticalAlign=top;dashed=1;fontStyle=1;fontSize=14;" value="Data Collection &amp; Signal Processing" vertex="1">
+      <mxGeometry height="740" width="360" x="20" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="bg2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;verticalAlign=top;dashed=1;fontStyle=1;fontSize=14;" value="Analytics &amp; Predictive Modeling" vertex="1">
+      <mxGeometry height="740" width="460" x="400" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="bg3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;verticalAlign=top;dashed=1;fontStyle=1;fontSize=14;" value="Reporting &amp; Export" vertex="1">
+      <mxGeometry height="740" width="260" x="880" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="start" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="main.py&lt;br&gt;&lt;b&gt;start_job()&lt;/b&gt;&lt;br&gt;Setup input/output paths" vertex="1">
+      <mxGeometry height="60" width="160" x="120" y="80" as="geometry" />
+    </mxCell>
+    <mxCell id="txt_example" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacing=5;fontSize=8;fontFamily=Courier New;" value="&lt;b&gt;*** File Input Example ***&lt;br&gt;Eq:&amp;nbsp;Jockey Pump&lt;br&gt;Date:&amp;nbsp;28-Jun-24 09:15:08&lt;br&gt;&lt;br&gt;Time (ms)&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Amp (G-s)&lt;/b&gt;&lt;hr&gt;0.&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;.169&lt;br&gt;.391&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;.626&lt;br&gt;.781&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;.815&lt;br&gt;1.172&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;.727&lt;br&gt;...&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;..." vertex="1">
+      <mxGeometry height="150" width="140" x="-130" y="240" as="geometry" />
+    </mxCell>
+    <mxCell id="parse_loop" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="core/parser.py&lt;br&gt;&lt;b&gt;collect_measurements()&lt;/b&gt;&lt;br&gt;Scan data/*.txt" vertex="1">
+      <mxGeometry height="70" width="190" x="105" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="e_txt_example" edge="1" parent="1" source="txt_example" target="read_txt">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="read_txt" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" value="Read lines, Find:&lt;br&gt;- Equipment Name&lt;br&gt;- Timestamp&lt;br&gt;- Raw Time, Amplitude (g)" vertex="1">
+      <mxGeometry height="60" width="160" x="120" y="280" as="geometry" />
+    </mxCell>
+    <mxCell id="math_start" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;get_rms_math(...)&lt;/b&gt;&lt;br&gt;Convert Raw signals" vertex="1">
+      <mxGeometry height="60" width="160" x="120" y="380" as="geometry" />
+    </mxCell>
+    <mxCell id="math_1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="1. Sort by Time&lt;br&gt;(Fix Interleaved data)" vertex="1">
+      <mxGeometry height="40" width="160" x="120" y="470" as="geometry" />
+    </mxCell>
+    <mxCell id="math_2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="2. Detrend Acceleration&lt;br&gt;(Remove DC part)" vertex="1">
+      <mxGeometry height="40" width="160" x="120" y="530" as="geometry" />
+    </mxCell>
+    <mxCell id="math_3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="3. Integrate to Velocity&lt;br&gt;(Trapezoidal method)" vertex="1">
+      <mxGeometry height="40" width="160" x="120" y="590" as="geometry" />
+    </mxCell>
+    <mxCell id="math_4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="4. Detrend Velocity &amp;amp;&lt;br&gt;Calc Velocity RMS (mm/s)" vertex="1">
+      <mxGeometry height="40" width="160" x="120" y="650" as="geometry" />
+    </mxCell>
+    <mxCell id="classifier" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="core/classifier.py&lt;br&gt;&lt;b&gt;attach_health_zones()&lt;/b&gt;&lt;br&gt;Assign ISO Status&lt;br&gt;(A/B/C/D Zones)" vertex="1">
+      <mxGeometry height="60" width="160" x="550" y="80" as="geometry" />
+    </mxCell>
+    <mxCell id="viz" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="core/visualize.py&lt;br&gt;&lt;b&gt;generate_visualizations()&lt;/b&gt;&lt;br&gt;Create PNG Charts" vertex="1">
+      <mxGeometry height="60" width="180" x="430" y="220" as="geometry" />
+    </mxCell>
+    <mxCell id="viz_details" parent="1" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#e4d7a3;strokeColor=#None;" value="1. Timeline graph&lt;br&gt;2. Initial vs Latest shift&lt;br&gt;3. % Growth Heatmap" vertex="1">
+      <mxGeometry height="70" width="140" x="450" y="320" as="geometry" />
+    </mxCell>
+    <mxCell id="forecast_loop" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Group by Equipment&lt;br&gt;&amp;amp; Sort by Time" vertex="1">
+      <mxGeometry height="70" width="150" x="660" y="215" as="geometry" />
+    </mxCell>
+    <mxCell id="forecast_logic" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="core/forecast.py&lt;br&gt;&lt;b&gt;calc_breakdown_point()&lt;/b&gt;&lt;br&gt;1-degree polyfit (y=mx+b)" vertex="1">
+      <mxGeometry height="60" width="180" x="645" y="320" as="geometry" />
+    </mxCell>
+    <mxCell id="forecast_calc" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="If Degrading (slope &gt; 0):&lt;br&gt;Find days to hit 7.1 limit&lt;br&gt;Return Est. Date" vertex="1">
+      <mxGeometry height="60" width="180" x="645" y="420" as="geometry" />
+    </mxCell>
+    <mxCell id="summary_table" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" value="Print PrettyTable to Terminal&lt;br&gt;[ TODAY&#39;S ASSET OVERVIEW ]" vertex="1">
+      <mxGeometry height="60" width="180" x="920" y="220" as="geometry" />
+    </mxCell>
+    <mxCell id="csv_export" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#bac8d3;strokeColor=#23445d;" value="Export Final Overview&lt;br&gt;vibration_summary.csv" vertex="1">
+      <mxGeometry height="60" width="160" x="930" y="320" as="geometry" />
+    </mxCell>
+    <mxCell id="csv_example" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacing=5;fontSize=8;" value="&lt;b&gt;vibration_summary.csv&lt;/b&gt;&lt;hr&gt;&lt;table cellpadding=&quot;2&quot; cellspacing=&quot;0&quot; border=&quot;1&quot; style=&quot;width:100%;border-collapse:collapse;color:#333;&quot;&gt;&lt;tr style=&quot;background-color:#eee;&quot;&gt;&lt;th&gt;Equipment&lt;/th&gt;&lt;th&gt;Velocity_RMS&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Cooling Pump for ECH-02&lt;/td&gt;&lt;td&gt;2.72&lt;/td&gt;&lt;td&gt;Zone B (Yellow)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Cooling Pump for OAH-02&lt;/td&gt;&lt;td&gt;2.70&lt;/td&gt;&lt;td&gt;Zone B (Yellow)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Motor Compressor OAH-06_A&lt;/td&gt;&lt;td&gt;1.70&lt;/td&gt;&lt;td&gt;Zone A (Green)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Jockey Pump&lt;/td&gt;&lt;td&gt;6.69&lt;/td&gt;&lt;td&gt;Zone C (Orange)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Motor Compressor CH-06_A&lt;/td&gt;&lt;td&gt;1.76&lt;/td&gt;&lt;td&gt;Zone A (Green)&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" vertex="1">
+      <mxGeometry height="160" width="240" x="890" y="410" as="geometry" />
+    </mxCell>
+    <mxCell id="e_csv_example" edge="1" parent="1" source="csv_export" target="csv_example">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="png_export" parent="1" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#e4d7a3;strokeColor=#None;" value="Save 3 PNGs&lt;br&gt;to output/" vertex="1">
+      <mxGeometry height="60" width="140" x="940" y="610" as="geometry" />
+    </mxCell>
+    <mxCell id="e_start_parse" edge="1" parent="1" source="start" target="parse_loop">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_parse_read" edge="1" parent="1" source="parse_loop" target="read_txt">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_read_to_parse" edge="1" parent="1" source="read_txt" target="math_start">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_math1" edge="1" parent="1" source="math_start" target="math_1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_math2" edge="1" parent="1" source="math_1" target="math_2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_math3" edge="1" parent="1" source="math_2" target="math_3">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_math4" edge="1" parent="1" source="math_3" target="math_4">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_math4_back" edge="1" parent="1" source="math_4" target="classifier">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="200" y="720" />
+          <mxPoint x="360" y="720" />
+          <mxPoint x="360" y="110" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_class_viz" edge="1" parent="1" source="classifier" target="viz">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="630" y="180" />
+          <mxPoint x="520" y="180" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_class_forecast" edge="1" parent="1" source="classifier" target="forecast_loop">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="630" y="180" />
+          <mxPoint x="735" y="180" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_viz_doc" edge="1" parent="1" source="viz" target="viz_details">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_loop_forecast" edge="1" parent="1" source="forecast_loop" target="forecast_logic">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_forecast_calc" edge="1" parent="1" source="forecast_logic" target="forecast_calc">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_forecast_report1" edge="1" parent="1" source="forecast_calc" target="summary_table">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="735" y="520" />
+          <mxPoint x="840" y="520" />
+          <mxPoint x="840" y="380" />
+          <mxPoint x="840" y="250" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_forecast_report2" edge="1" parent="1" source="forecast_calc" target="csv_export">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="735" y="520" />
+          <mxPoint x="840" y="520" />
+          <mxPoint x="840" y="380" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_viz_to_png" edge="1" parent="1" source="viz_details" target="png_export">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="520" y="630" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>

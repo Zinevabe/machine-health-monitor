@@ -15,5 +15,5 @@ def assign_vibration_class(amplitude):
     return "Zone D (Red) - DAMAGE OCCURS"
 
 def attach_health_zones(dataset):
-    dataset["ISO_Status"] = [assign_vibration_class(v) for v in dataset["RMS_Value"]]
+    dataset["ISO_Status"] = [assign_vibration_class(v) for v in dataset["Velocity_RMS"]]
     return dataset

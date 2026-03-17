@@ -10,7 +10,7 @@ def calc_breakdown_point(hist_data, danger_mark=7.1):
     # and handle multiple entries on the same day properly.
     start_date = hist_data["Timestamp"].iloc[0]
     time_series_x = [(t - start_date).total_seconds() / 86400.0 for t in hist_data["Timestamp"]]
-    y_vibes = hist_data["RMS_Value"].tolist()
+    y_vibes = hist_data["Velocity_RMS"].tolist()
 
     # Prevent polyfit error if all data points are taken at the exact same exact timestamp
     if max(time_series_x) - min(time_series_x) == 0:

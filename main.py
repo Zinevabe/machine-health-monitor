@@ -41,7 +41,7 @@ def start_job():
         
         summary_list.append({
             "Equipment": asst,
-            "Latest_RMS": f"{latest['RMS_Value']:.2f}",
+            "Latest_Velocity_RMS": f"{latest['Velocity_RMS']:.2f}",
             "Status": latest["ISO_Status"],
             "Trend": status_trend,
             "Est_Failure": drop_date if drop_date else "N/A"
@@ -51,14 +51,14 @@ def start_job():
     
     from prettytable import PrettyTable
     pt = PrettyTable()
-    pt.field_names = ["Equipment", "Latest_RMS (mm/s)", "Status", "Trend", "Est_Failure"]
+    pt.field_names = ["Equipment", "Velocity RMS (mm/s)", "Status", "Trend", "Est_Failure"]
     pt.align = "l"  # Align text to the left
-    pt.align["Latest_RMS (mm/s)"] = "r" # Align numbers to the right
+    pt.align["Velocity RMS (mm/s)"] = "r" # Align numbers to the right
     pt.align["Trend"] = "c"
     pt.align["Est_Failure"] = "c"
     
     for row in summary_list:
-        pt.add_row([row["Equipment"], row["Latest_RMS"], row["Status"], row["Trend"], row["Est_Failure"]])
+        pt.add_row([row["Equipment"], row["Latest_Velocity_RMS"], row["Status"], row["Trend"], row["Est_Failure"]])
     
     print("\n[ TODAY'S ASSET OVERVIEW ]")
     print(pt)

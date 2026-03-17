@@ -56,7 +56,7 @@ def collect_measurements(scan_dir):
                     extracted_items.append({
                         "Equipment": clean_machine_name,
                         "Timestamp": recorded_time,
-                        "RMS_Value": get_rms_math(raw_times, raw_amplitudes),
+                        "Velocity_RMS": get_rms_math(raw_times, raw_amplitudes),
                         "Source_File": txt_file.name
                     })
                 
@@ -99,7 +99,7 @@ def collect_measurements(scan_dir):
             extracted_items.append({
                 "Equipment": clean_machine_name,
                 "Timestamp": recorded_time,
-                "RMS_Value": get_rms_math(raw_times, raw_amplitudes),
+                "Velocity_RMS": get_rms_math(raw_times, raw_amplitudes),
                 "Source_File": txt_file.name
             })
         

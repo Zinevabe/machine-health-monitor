@@ -24,3 +24,6 @@ htmlcov/
 output/.venv/
 __pycache__/
 .DS_Store
+
+# Notes/Scripts
+presentation_script.md
