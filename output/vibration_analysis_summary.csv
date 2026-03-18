@@ -1,4 +1,4 @@
-Equipment,Latest_Velocity_RMS,Status,Trend,Est_Failure
-Cooling Pump for OAH-02,2.70,Zone B (Yellow) - Unrestricted operation,Stable or Improving,N/A
-Motor Compressor OAH-06_A,1.70,Zone A (Green) - Newly commissioned,Stable or Improving,N/A
-Jockey Pump,6.69,Zone C (Orange) - Restricted operation,Stable or Improving,N/A
+Equipment,Latest_Timestamp,Latest_Velocity_RMS,Latest_Kurtosis,Latest_Crest_Factor,ISO_Status,Health_Flag,Stat_Alert,Isolation_Anomaly,Alert_Reason,Trend,Est_Failure
+Cooling Pump for OAH-02,2024-10-16 10:53:12,2.702,1.846,2.213,Zone B (Yellow) - Unrestricted operation,Normal,No,No,baseline,Stable or Improving,N/A
+Jockey Pump,2024-10-16 11:46:26,6.694,3.082,3.515,Zone C (Orange) - Restricted operation,Watchlist,No,No,ISO severity,Degrading,2024-11-22
+Motor Compressor OAH-06_A,2024-10-16 12:12:21,1.699,3.215,4.288,Zone A (Green) - Newly commissioned,Watchlist,No,Yes,isolation-forest,Stable or Improving,N/A

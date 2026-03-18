@@ -1,40 +1,71 @@
+import os
 import numpy as np
 import pandas as pd
-import datetime
 
-def calc_breakdown_point(hist_data, danger_mark=7.1):
-    if len(hist_data) < 2:
-        return "Stable or Improving", None
 
-    # Calculate days (as float) from the first record to avoid large X coordinates 
-    # and handle multiple entries on the same day properly.
-    start_date = hist_data["Timestamp"].iloc[0]
-    time_series_x = [(t - start_date).total_seconds() / 86400.0 for t in hist_data["Timestamp"]]
-    y_vibes = hist_data["Velocity_RMS"].tolist()
+def fit_linear_degradation(hist_data, target_col="Velocity_RMS"):
+    ordered = hist_data.sort_values("Timestamp")
+    if len(ordered) < 2:
+        return None
 
-    # Prevent polyfit error if all data points are taken at the exact same exact timestamp
-    if max(time_series_x) - min(time_series_x) == 0:
-         return "Stable or Improving", None
+    start_date = ordered["Timestamp"].iloc[0]
+    time_days = np.array(
+        [(ts - start_date).total_seconds() / 86400.0 for ts in ordered["Timestamp"]],
+        dtype=float,
+    )
+    target_values = ordered[target_col].astype(float).to_numpy()
+
+    if np.ptp(time_days) == 0:
+        return None
 
     try:
-        # Fit a 1-degree polynomial (y = mx + b)
-        m_curve, b_intercept = np.polyfit(time_series_x, y_vibes, 1)
+        recency_weight = max(1.0, float(os.environ.get("FORECAST_RECENCY_WEIGHT", "5.0")))
+        fit_weights = np.linspace(1.0, recency_weight, len(time_days))
+        slope, intercept = np.polyfit(time_days, target_values, 1, w=fit_weights)
     except Exception:
+        return None
+
+    predictions = slope * time_days + intercept
+    residual_sum = float(np.sum(fit_weights * (target_values - predictions) ** 2))
+    total_sum = float(np.sum(fit_weights * (target_values - np.average(target_values, weights=fit_weights)) ** 2))
+    r_squared = 1.0 - residual_sum / total_sum if total_sum > 0 else 1.0
+
+    return {
+        "start_date": start_date,
+        "time_days": time_days,
+        "values": target_values,
+        "slope_per_day": float(slope),
+        "intercept": float(intercept),
+        "r_squared": float(r_squared),
+    }
+
+
+def calc_breakdown_point(hist_data, danger_mark=None, target_col="Velocity_RMS"):
+    if danger_mark is None:
+        danger_mark = float(os.environ.get("LVL_CRIT", "7.1"))
+
+    ordered = hist_data.sort_values("Timestamp")
+    latest = ordered.iloc[-1]
+    latest_value = float(latest[target_col])
+    if latest_value >= danger_mark:
+        return "Above failure threshold", latest["Timestamp"].strftime("%Y-%m-%d")
+
+    fit = fit_linear_degradation(ordered, target_col=target_col)
+    if fit is None:
+        return "Insufficient data", None
+
+    if fit["slope_per_day"] <= 0.0:
         return "Stable or Improving", None
 
-    # If the trend is going down or flat, it's not degrading
-    if m_curve <= 0.0:
-        return "Stable or Improving", None
+    days_to_threshold = (danger_mark - fit["intercept"]) / fit["slope_per_day"]
+    latest_elapsed_days = fit["time_days"][-1]
+    remaining_days = float(days_to_threshold - latest_elapsed_days)
 
-    # Calculate how many days from the start_date it takes to hit danger_mark
-    days_to_crash = (danger_mark - b_intercept) / m_curve
-    
-    # If the calculated days point to the past, the trend doesn't make sense
-    if days_to_crash < 0:
+    if remaining_days < 0:
         return "Degrading", None
-        
+
     try:
-        crash_dt = start_date + pd.Timedelta(days=int(days_to_crash))
-        return "Degrading", crash_dt.strftime('%Y-%m-%d')
+        failure_date = fit["start_date"] + pd.Timedelta(days=float(days_to_threshold))
+        return "Degrading", failure_date.strftime("%Y-%m-%d")
     except (ValueError, OverflowError):
         return "Degrading", None

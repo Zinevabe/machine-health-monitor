@@ -1,125 +1,99 @@
 # Vibration Analysis & Predictive Maintenance
 
-ระบบวิเคราะห์ข้อมูลความสั่นสะเทือนของเครื่องจักร (Rotating Machinery) ตามมาตรฐาน ISO 10816-3 
-โปรแกรมจะทำการอ่านไฟล์ waveform จาก sensor ของเครื่องจักรแต่ละตัว นำมาประมวลผลแปลงสัญญาณเป็นค่าความเร็ว (Velocity RMS) จำแนกสถานะความเสียหายปัจจุบัน และคาดการณ์ระยะเวลาที่เครื่องจักรจะเข้าสู่เกณฑ์ระดับอันตราย (Zone Red) เพื่อวางแผนซ่อมบำรุงล่วงหน้า
+โปรเจกต์นี้ใช้ข้อมูล waveform ความสั่นสะเทือนที่มีจำนวนน้อยและไม่มี label เพื่อประเมินสุขภาพเครื่องจักร, ตรวจจับความผิดปกติ, และประมาณช่วงเวลาที่อาจเข้าใกล้ failure threshold โดยผสมผสาน signal processing, statistical rule, และ unsupervised anomaly detection เข้าด้วยกัน
 
----
+## Pipeline
 
-## ขั้นตอนการทำงานของโปรแกรม (How it Works)
+1. `core/parser.py`
+   อ่านไฟล์ `.txt` จาก data logger แล้วแปลง waveform 1 ไฟล์ให้เป็น measurement-level feature vector
+   ฟีเจอร์หลักที่สกัดได้:
+   `Velocity_RMS`, `Acceleration_RMS_G`, `Peak_to_Peak_G`, `Kurtosis`, `Crest_Factor`, `Velocity_Peak_mm_s`, `Dominant_Frequency_Hz`, `Spectral_Centroid_Hz`, `Spectral_Entropy`
 
-โปรแกรมรันตาม Pipeline ของ Data Processing ดังนี้:
+2. `core/classifier.py`
+   ประเมินแต่ละ measurement ด้วย 3 ชั้นพร้อมกัน
+   `ISO_Status`: เทียบค่า `Velocity_RMS` กับ threshold ตาม ISO 10816-3
+   `Stat_Alert`: เทียบกับ baseline ช่วงแรกของแต่ละเครื่องด้วยกฎ `mean + 3 sigma`
+   `Isolation_Anomaly`: ใช้ `IsolationForest` บน feature vector เพื่อหาจุดที่เบี่ยงจากกลุ่มข้อมูลรวม
 
-1. **Data Parsing & Signal Processing (`core/parser.py`)**: 
-   - ทำการกวาดอ่านไฟล์ `.txt` ทั้งหมดในโฟลเดอร์ `data/` ทีละบรรทัดด้วยข้อความ (String Processing) เบื้องต้น
-   - ดึงชื่อเครื่องจักร (Equipment) และ วันที่/เวลา (Timestamp) ออกมา
-   - ดึงข้อมูล Amplitude จากเซ็นเซอร์ซึ่งเป็นหน่วยความเร่ง (Acceleration ในหน่วย g) และจัดเรียงข้อมูลเวลาที่อาจสลับกัน 
-   - จัดการตัดค่าความเบี่ยงเบนของสัญญาณ (DC Offset & Detrending)
-   - แปลงข้อมูลจากความเร่งให้กลายเป็นความเร็ว ด้วยสมการทางคณิตศาสตร์แบบค่อยๆ รวมค่าไปเรื่อยๆ (Trapezoidal Method Integration) แล้วจึงคำนวณหารากที่สองของค่าเฉลี่ยกำลังสองจนได้ผลลัพธ์เป็นค่า **Velocity RMS (Root Mean Square)** ในหน่วย mm/s
+3. `core/forecast.py`
+   ฟิตเส้นแนวโน้มเชิงเส้นแบบถ่วงน้ำหนักข้อมูลล่าสุด (recency-weighted regression) ของ `Velocity_RMS` ต่อเครื่อง แล้วหาเวลาที่เส้นแนวโน้มจะตัด `LVL_CRIT`
+   ถ้า slope ไม่เป็นบวกหรือข้อมูลยังไม่ชี้ว่าเสื่อมลง ระบบจะรายงาน `Stable or Improving`
 
-2. **Classification & Status (`core/classifier.py`)**:
-   - นำค่า **Velocity RMS** ของแต่ละเครื่องจักรไปเทียบกับเกณฑ์ความปลอดภัยตามมาตรฐาน (Threshold) ที่ดึงมาจาก Environment (`.env`)
-   - แบ่งสถานะออกเป็น 4 ระดับ (Zone A - D) ตามเกณฑ์สากล ISO-10816-3
+4. `core/visualize.py`
+   สร้างกราฟ 3 ชุด:
+   `plot_1_vibration_timeline.png` : แยกกราฟรายเครื่อง, เห็นค่าจริง + trend fit + เส้น forecast + threshold
+   `plot_2_feature_anomaly_map.png` : heatmap ค่าล่าสุดเทียบ reference (สีคือ ratio, ตัวเลขคือค่าจริง)
+   `plot_3_anomaly_heatmap.png` : monthly scoreboard ของ severity และ alert points ต่อเครื่อง
 
-3. **Trend Forecasting (`core/forecast.py`)**:
-   - จัดเรียงข้อมูลประวัติการสั่น (Time Series) ของเครื่องจักรแต่ละตัวเรียงตามเวลา
-   - ใช้วิธี **Linear Regression หรือ การหาความสัมพันธ์เชิงเส้น** (ผ่านฟังก์ชัน `np.polyfit` องศา 1) เพื่อคำนวณหา "ความชันของการสั่นที่เพิ่มขึ้น" (Trend)
-   - **ทำไมถึงเลือกใช้ Linear Model?**: เนื่องจากรูปแบบการขยายตัวของแรงสั่นสะเทือนในเครื่องจักรหมุน (เช่น อาการ Bearing สึกหรอ) มักจะสะสมความรุนแรงเพิ่มขึ้นแบบเส้นตรงในระยะตั้งต้นถึงระยะกลาง การนำเอา Linear Model มาคาดการณ์จึงทำให้ระบบตีความสาเหตุได้สมเหตุสมผล (Interpretable) และสามารถเริ่มพยากรณ์หาจุดตัด (Breakdown point) ได้ทันทีโดยไม่ต้องรอสะสม Big Data มหาศาลเหมือนในฝั่งของ Deep Learning
-   - หากความชันเป็นบวกอย่างต่อเนื่อง (Degrading) โปรแกรมจะนำความชันตั้งต้นไปหาจุดตัดในอนาคต (ตัดกับ Threshold ของโซนสีแดง) เพื่อหาวันที่คาดว่าเครื่องจะเข้าขีดอันตราย (พัง)
+5. `main.py`
+   รวมผลทั้งหมดเป็นตารางสรุปหน้า terminal พร้อม export CSV สองชุด
+   `output/vibration_analysis_summary.csv`
+   `output/vibration_feature_history.csv`
 
-4. **Summarizing & Output (`main.py`)**:
-   - สรุปผลการประมวลผลทั้งหมด นำมาเรียงเข้า DataFrame แล้วส่งออก (Export) เป็นไฟล์รายงานนามสกุล `.csv` 
+## Output Columns
 
----
+ไฟล์ `vibration_analysis_summary.csv` เน้นสถานะล่าสุดต่อเครื่อง:
 
-## อธิบายผลลัพธ์ (Understanding the Output)
+- `Latest_Velocity_RMS`: ค่า velocity RMS ล่าสุด (mm/s)
+- `Latest_Kurtosis`: ใช้จับแรงกระแทกหรือ waveform ที่โด่งผิดปกติ
+- `Latest_Crest_Factor`: peak/RMS สำหรับชี้ early bearing or gear fault
+- `ISO_Status`: ระดับความรุนแรงตามมาตรฐาน ISO
+- `Health_Flag`: สรุประดับความเสี่ยงสุดท้าย (`Normal`, `Watchlist`, `High risk`, `Critical`)
+- `Stat_Alert`: ผลจาก baseline 3-sigma
+- `Isolation_Anomaly`: ผลจาก IsolationForest
+- `Trend`: สถานะแนวโน้ม degradation
+- `Est_Failure`: วันที่ประมาณว่าจะชน `LVL_CRIT` ถ้า trend ยังเป็นบวกต่อเนื่อง
 
-เมื่อโปรแกรมประมวลผลเสร็จสิ้น ผลลัพธ์จะแสดงบนหน้าจอ Terminal และบันทึกไฟล์เป็น `output/vibration_analysis_summary.csv` 
-
-คำอธิบายของแต่ละคอลัมน์ในรายงานมีดังนี้:
-
-| Column | คำอธิบายและความหมายของการนำไปวิเคราะห์ |
-|---|---|
-| `Equipment` | **ชื่อเครื่องจักร** ดึงมาจากบรรทัด Equipment ในแผงข้อมูลของเครื่องนั้นๆ |
-| `Latest_Velocity_RMS` | **ความสั่นสะเทือน (mm/s) ณ ข้อมูลที่อ่านล่าสุด** ใช้เป็นตัวชี้วัดสภาพ (Health) ของเครื่องจักร ณ วันตรวจสอบล่าสุด |
-| `Status` | **สภาวะปัจจุบันอิงจาก ISO 10816-3** <br> - `Zone A (Green)`: เครื่องจักรทำงานสมบูรณ์ สภาพปรกติเหมือนใหม่ <br> - `Zone B (Yellow)`: ทำงานต่อเนื่องได้ แต่อาจเริ่มมีรอบเสื่อมตามกาลเวลา <br> - `Zone C (Orange)`: มีอาการสั่นสะเทือนในระดับที่ต้องควบคุมหรือจำกัดการใช้งาน <br> - `Zone D (Red)`: ระดับอันตราย ความเสียหายเกิดขึ้นแล้ว เสี่ยงเครื่องพังสูง |
-| `Trend` | **แนวโน้มสภาพปัจจุบัน** <br> - `Stable or Improving`: เครื่องไม่ได้สั่นสะเทือนรุนแรงขึ้น ใช้งานได้เสถียร <br> - `Degrading`: ระดับการสั่นสะเทือนมีแนวโน้มเพิ่มขึ้นอย่างต่อเนื่อง (เริ่มแย่ลงเรื่อยๆ เสี่ยงที่อายุการใช้งานจะสั้นลง) |
-| `Est_Failure` | **วัน/เดือน/ปี ที่คาดว่าจะเข้าโซน D (ระดับพัง)** <br> หาก Trend เป็นปกติ (Stable) โปรแกรมจะลงไว้เป็น `N/A` แต่ถ้าเป็น `Degrading` จะใส่วันที่คาดว่าจะแตะเส้นวิกฤติ เพื่อให้ทีมงานสามารถสั่งซัพพลายอะไหล่และวางแผนหยุดงานซ่อมได้อย่างแม่นยำ |
-
----
-
-## ตัวอย่างผลการทดลอง (Experimentation Results)
-
-จากการรันระบบตรวจสอบข้อมูลการสั่นสะเทือนของชุดเครื่องจักรที่ถูกเก็บค่า Waveform ไว้ในโฟลเดอร์ `data/` ล่าสุด ระบบสามารถทำการประเมินสถานะออกมาเป็นรายงาน ดังนี้:
-
-| Equipment | Velocity RMS (mm/s) | Status | Trend | Est_Failure |
-|:---|:---:|:---|:---:|:---:|
-| Cooling Pump for OAH-02 | 2.70 | Zone B (Yellow) - Unrestricted operation | Stable or Improving | N/A |
-| Motor Compressor OAH-06_A | 1.70 | Zone A (Green) - Newly commissioned | Stable or Improving | N/A |
-| Jockey Pump | 6.69 | Zone C (Orange) - Restricted operation | Stable or Improving | N/A |
-
-### การตีความหมายผลลัพธ์ (Interpretation):
-- **ข้อมูลสถานะเครื่องจักร:** เครื่องจักรถูกแบ่งระดับสภาวะต่างๆ ตามความเร็วการสั่นสะเทือน (Velocity RMS) อย่างชัดเจน
-  - เครื่อง **Motor Compressor** (OAH-06_A) อยู่ในเกณฑ์ดีเยี่ยม (`Zone A`)
-  - **Cooling Pump** (OAH-02) อยู่ในสถานะเฝ้าระวังปกติ ใช้งานต่อได้โดยไม่มีข้อจำกัด (`Zone B`)
-  - **Jockey Pump** เป็นเครื่องที่ควรให้ความสนใจมากที่สุด เนื่องจากมีค่าความสั่นสะเทือนสูงถึง 6.69 mm/s แตะระดับ `Zone C (Orange)` ซึ่งควรพิจารณาจำกัดระยะเวลาการใช้งานและตรวจสอบสาเหตุเบื้องต้น
-- **แนวโน้มความเสียหายล่วงหน้า (Trend & Est_Failure):** 
-  - ถึงแม้ Jockey Pump จะมีความสั่นสะเทือนสูง แต่แนวโน้ม (Trend) ของทุกเครื่องจักรยังอยู่ในเกณฑ์ที่ทรงตัวหรือดีขึ้น (`Stable or Improving`) 
-  - **สาเหตุที่ผลการทำนาย Est_Failure ออกมาเป็น N/A ทั้งหมด:** เนื่องจากโมเดล Linear Regression ตรวจพบว่า 'ความชัน (Slope)' ของข้อมูลยังไม่เป็นบวกอย่างชัดเจน (กราฟไม่ได้กำลังชี้หัวพุ่งขึ้น) ในหน้างานจริง การที่ค่าการสั่นสะเทือนในบางเดือนลดลงหรือทรงตัว อาจเกิดจากความผันผวนตามภาระการทำงาน (Load) หรือเพิ่งผ่านการซ่อมบำรุง (เข้า PM, อัดจารบี) เมื่อระบบไม่พบ **การเสื่อมสภาพอย่างต่อเนื่อง (Degrading Trend)** ระบบจึงไม่ลากเส้นพยากรณ์ไปตัดกับขีดอันตราย และรายงานผลเป็น N/A เพื่อสื่อว่า "เครื่องจักรยังเสถียรอยู่ ยังไม่ต้องกังวลเรื่องวันพังในตอนนี้"
-
----
+ไฟล์ `vibration_feature_history.csv` เก็บ measurement history แบบละเอียด พร้อม feature และ score ทุกตัวสำหรับนำไปวิเคราะห์ต่อใน pandas, Power BI, หรือ notebook
 
 ## Setup
 
-### 1. สร้าง virtual environment
+### 1. Create environment
 
-**macOS / Linux**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 2. ติดตั้ง dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 3. ตั้งค่า environment
+### 2. Configure thresholds
 
 ```bash
 cp .env.example .env
 ```
-(สามารถเข้าไปแก้ค่าขีดจำกัด Velocity RMS Threshold แต่ละสีตามประเภทเครื่องจักรได้เลยภายในไฟล์นี้)
 
-### 4. รันโปรแกรมตรวจสอบ
+ตัวแปรสำคัญใน `.env`
 
-วางไฟล์เอกสารจากเซ็นเซอร์ `.txt` ไว้รวมกันในโฟลเดอร์ `data/` ทั้งหมด แล้วรันคำสั่ง:
+- `LVL_WARN`, `LVL_ALERT`, `LVL_CRIT`: ISO velocity thresholds
+- `BASELINE_POINTS`: จำนวน measurement ช่วงต้นที่ถือเป็น baseline ปกติของแต่ละเครื่อง
+- `SIGMA_MULTIPLIER`: ตัวคูณ sigma สำหรับ statistical alert
+- `FORECAST_RECENCY_WEIGHT`: น้ำหนักของจุดล่าสุดในการ fit เส้นทำนาย `Est_Failure` (ค่าสูงจะเน้นแนวโน้มล่าสุดมากขึ้น)
+- `DATA_DIR`, `OUTPUT_DIR`: path ของ input/output
+
+### 3. Run
 
 ```bash
-python main.py
+./.venv/bin/python main.py
 ```
-ผลลัพธ์ทั้งหมดจะถูกนำไปเก็บไว้ใน `output/vibration_analysis_summary.csv`
-
----
 
 ## Project Structure
 
 ```text
 prediction_vibration/
 ├── core/
-│   ├── parser.py       # ใช้ลอจิกการหั่นข้อความบรรทัดต่อบรรทัดและสกัดตัวเลข 
-│   ├── classifier.py   # เทียบเกณฑ์มาตรฐานความสั่นสะเทือนเพื่อจัดระดับความรุนแรงตามโซน
-│   └── forecast.py     # พยากรณ์อายุการใช้งานด้วยการหาความสัมพันธ์เชิงเส้น (Linear Regression)
-├── data/               # โฟลเดอร์วางไฟล์ .txt จาก data logger ของเครื่องจักร (input)
-├── output/             # โฟลเดอร์ที่เก็บไฟล์รายงานสรุปของระบบ (.csv)
-├── main.py             # ควบคุมการทำงานของโมดูลย่อยทั้งหมดมาจบรวบในรูปแบบ Report
+│   ├── parser.py
+│   ├── classifier.py
+│   ├── forecast.py
+│   └── visualize.py
+├── data/
+├── output/
+├── main.py
 ├── requirements.txt
 └── .env.example
 ```
 
----
+## Practical Notes
 
-## Notes
-
-- ตัว `core/parser.py` หั่นข้อความโดยอิงจากตำแหน่งคำว่า "Equipment" และ "Date/Time" กรณีมีเครื่องรุ่นใหม่หรือ Data logger ส่งรายงานรูปแบบใหม่จะต้องปรับเพิ่มลอจิกจับคู่ตัวอักษร 
-- ระบบพยากรณ์อิงจากค่าเส้นตรง ณ ข้อมูลชุดปัจจุบันที่มี หากมีการเก็บ Historical data ให้อยู่ใน Time Series นานขึ้น ความแม่นยำของการประเมิน `Est_Failure` จะสะท้อนสภาพหน้างานได้ลึกขึ้น
+- ข้อมูลน้อยมากยังเหมาะกับแนวทางนี้ เพราะแต่ละ feature มีความหมายทางวิศวกรรมและตีความหน้างานได้
+- `IsolationForest` ใช้เป็นสัญญาณเสริม ไม่ควรใช้แทน judgement ทางวิศวกรรมเพียงอย่างเดียวเมื่อ sample ยังน้อย
+- ถ้ามีข้อมูลรอบหมุน (RPM), bearing fault frequencies, หรือ load condition เพิ่มเข้ามา สามารถต่อยอด frequency-domain diagnosis ให้ชี้ root cause ได้ละเอียดขึ้น
